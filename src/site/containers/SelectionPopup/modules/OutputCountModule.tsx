@@ -6,15 +6,13 @@ import {CreateModule, ModuleConfig, UseModuleProps} from "./Module";
 
 const Config: ModuleConfig<[Encoder], number> = {
     types: [Encoder],
-    parseVal: (v) => parseInt(v),
-    isValid: (_) => true,
     getProps: (o) => o.getOutputPortCount().getValue(),
     getAction: (s, newCount) => new GroupAction(s.map(o =>
         new CoderPortChangeAction(o, o.getOutputPortCount().getValue(), newCount)))
 }
 
 const Module = CreateModule({
-    inputType: "number",
+    inputType: "int",
     config: Config,
     step: 1,
     min: 2,

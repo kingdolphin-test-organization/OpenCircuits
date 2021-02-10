@@ -10,8 +10,6 @@ export type ModuleTypes = number | string;
 
 export type ModuleConfig<T extends any[], P extends ModuleTypes> = {
     types: (Function & {prototype: T[number]})[],
-    parseVal: (v: string) => P,
-    isValid: (v: P) => boolean,
     getProps: (o: T[number]) => P,
     getAction: (s: (T[number])[], newVal: P) => Action
 }
@@ -30,8 +28,9 @@ export type UseModuleProps = {
     render: () => void;
 }
 
+
 type ModuleProps<T extends any[], P extends ModuleTypes> = {
-    inputType: "number" | "text" | "color";
+    inputType: "float" | "int" | "text" | "color" | "select";
     config: ModuleConfig<T, P>;
     step?: number;
     min?: number;
@@ -43,6 +42,27 @@ export const CreateModule = (<T extends any[], P extends ModuleTypes>({inputType
     let same: boolean;
     let tempAction: Action;
     let prevDependencyStr: string;
+
+
+    const parseVal = (s: string) => {
+        switch (inputType) {
+            case "float":
+                return parseFloat(s) as P;
+            case "int":
+                return parseInt(s) as P;
+            default:
+                return s as P;
+        }
+    }
+
+    const isValid = (v: P) => {
+        if (typeof v === "number") {
+            let mn = (min ?? -Infinity);
+            let mx = (max ?? +Infinity);
+            return !isNaN(v) && (mn <= v && v <= mx);
+        }
+        return true;
+    }
 
     const filterTypes = (s: Selectable[]) => {
         return config.types.reduce((cur, Type) => [...cur, ...s.filter(s => s instanceof Type)], []) as T;
@@ -109,10 +129,10 @@ export const CreateModule = (<T extends any[], P extends ModuleTypes>({inputType
         const {focused, textVal} = state;
 
         const onChange = (newVal: string) => {
-            const val = config.parseVal(newVal);
+            const val = parseVal(newVal);
 
             // Do action w/o saving it if the textVal is valid right now
-            if (config.isValid(val)) {
+            if (isValid(val)) {
                 if (tempAction)
                     tempAction.undo();
                 tempAction = config.getAction(selections.get() as T, val).execute();
@@ -135,8 +155,8 @@ export const CreateModule = (<T extends any[], P extends ModuleTypes>({inputType
             tempAction.undo();
             tempAction = undefined;
 
-            const finalVal = parseFinalVal(config.parseVal(textVal));
-            if (!config.isValid(finalVal)) {
+            const finalVal = parseFinalVal(parseVal(textVal));
+            if (!isValid(finalVal)) {
                 // Invalid final input, so reset back to starting state
                 setState({...state, focused: false, textVal: val.toString()});
                 render();
@@ -157,7 +177,7 @@ export const CreateModule = (<T extends any[], P extends ModuleTypes>({inputType
         }
 
         return (
-            <input type={inputType}
+            <input type={(inputType === "float" || inputType === "int" ? "number" : inputType)}
                    value={focused ? textVal : (same ? val : "")}
                    placeholder={same ? "" : "-"}
                    step={step}

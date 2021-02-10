@@ -1,13 +1,11 @@
 import {GroupAction} from "core/actions/GroupAction";
-import {IOObject} from "core/models";
 import {SetNameAction} from "core/actions/SetNameAction";
+import {IOObject} from "core/models";
 import {CreateModule, ModuleConfig, UseModuleProps} from "./Module";
 
 
 const Config: ModuleConfig<[IOObject], string> = {
     types: [IOObject],
-    parseVal: (v) => v,
-    isValid: (_) => true,
     getProps: (o) => o.getName(),
     getAction: (s, newName) => new GroupAction(s.map(o => new SetNameAction(o, newName)))
 }

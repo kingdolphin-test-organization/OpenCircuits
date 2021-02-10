@@ -6,8 +6,6 @@ import {CreateModule, ModuleConfig, UseModuleProps} from "./Module";
 
 const Config: ModuleConfig<[LED, Label], string> = {
     types: [LED, Label],
-    parseVal: (v) => v,
-    isValid: (_) => true,
     getProps: (o) => o.getColor(),
     getAction: (s, newCol) => new GroupAction(s.map(o => new ColorChangeAction(o, newCol)))
 }

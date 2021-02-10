@@ -6,14 +6,12 @@ import {CreateModule, ModuleConfig, UseModuleProps} from "./Module";
 
 const Config: ModuleConfig<[Clock], number> = {
     types: [Clock],
-    parseVal: (v) => parseInt(v),
-    isValid: (_) => true,
     getProps: (o) => o.getFrequency(),
     getAction: (s, newFreq) => new GroupAction(s.map(o => new ClockFrequencyChangeAction(o, newFreq)))
 }
 
 const Module = CreateModule({
-    inputType: "number",
+    inputType: "int",
     config: Config,
     step: 100,
     min: 200,

@@ -20,8 +20,6 @@ const Config: ModuleConfig<[ANDGate, NANDGate, ORGate,
     types: [ANDGate, NANDGate, ORGate,
             NORGate, XORGate, XNORGate,
             Mux, Decoder],
-    parseVal: (v) => parseInt(v),
-    isValid: (_) => true,
     getProps: (o) => (o instanceof Mux ? o.getSelectPortCount() : o.getInputPortCount()).getValue(),
     getAction: (s, newCount) => (
         new GroupAction(
@@ -38,7 +36,7 @@ const Config: ModuleConfig<[ANDGate, NANDGate, ORGate,
 }
 
 const Module = CreateModule({
-    inputType: "number",
+    inputType: "int",
     config: Config,
     step: 1,
     min: 2,
