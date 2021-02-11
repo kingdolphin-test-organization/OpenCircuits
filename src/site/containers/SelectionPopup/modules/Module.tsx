@@ -1,4 +1,4 @@
-import {useLayoutEffect, useState} from "react";
+import {useLayoutEffect, useState, cloneElement} from "react";
 
 import {Clamp} from "math/MathUtils";
 import {Selectable} from "core/utils/Selectable";
@@ -9,10 +9,20 @@ import {Action} from "core/actions/Action";
 export type ModuleTypes = number | string;
 
 export type ModuleConfig<T extends any[], P extends ModuleTypes> = {
-    types: (Function & {prototype: T[number]})[],
-    getProps: (o: T[number]) => P,
-    getAction: (s: (T[number])[], newVal: P) => Action
+    types: (Function & {prototype: T[number]})[];
+    valType: "float" | "int" | "string";
+    getProps: (o: T[number]) => P;
+    getAction: (s: (T[number])[], newVal: P) => Action;
 }
+
+// export type ModuleConfig<T extends any[], P extends ModuleTypes> = {
+//     types: (Function & {prototype: T[number]})[];
+//     getProps: (o: T[number]) => P;
+//     getAction: (s: (T[number])[], newVal: P) => Action;
+// } &
+//     (P extends number ? { valType: "float" | "int" } :
+//     (P extends string ? { valType: "string" } :
+//                         { valType: "boolean" }));
 
 type State = {
     active: true;
@@ -29,52 +39,68 @@ export type UseModuleProps = {
 }
 
 
-type ModuleProps<T extends any[], P extends ModuleTypes> = {
-    inputType: "float" | "int" | "text" | "color" | "select";
+
+type SelectModuleProps<T extends any[], P extends ModuleTypes> = {
+    inputType: "select";
+    config: ModuleConfig<T, P>;
+    options: P[];
+}
+type NumberModuleProps<T extends any[], P extends ModuleTypes> = {
+    inputType: "number";
     config: ModuleConfig<T, P>;
     step?: number;
     min?: number;
     max?: number;
     alt: string;
 }
-export const CreateModule = (<T extends any[], P extends ModuleTypes>({inputType, config, step, min, max, alt}: ModuleProps<T, P>) => {
+type OtherModuleProps<T extends any[], P extends ModuleTypes> = {
+    inputType: "text" | "color";
+    config: ModuleConfig<T, P>;
+    alt: string;
+}
+
+type ModuleProps<T extends any[], P extends ModuleTypes> =
+    SelectModuleProps<T, P> | NumberModuleProps<T, P> | OtherModuleProps<T, P>;
+export const CreateModule = (<T extends any[], P extends ModuleTypes>(props: ModuleProps<T, P>) => {
     let val: P;
     let same: boolean;
     let tempAction: Action;
     let prevDependencyStr: string;
 
+    const {config} = props;
+
 
     const parseVal = (s: string) => {
-        switch (inputType) {
+        switch (config.valType) {
             case "float":
                 return parseFloat(s) as P;
             case "int":
                 return parseInt(s) as P;
-            default:
+            case "string":
                 return s as P;
         }
     }
 
     const isValid = (v: P) => {
-        if (typeof v === "number") {
-            let mn = (min ?? -Infinity);
-            let mx = (max ?? +Infinity);
-            return !isNaN(v) && (mn <= v && v <= mx);
+        if (props.inputType === "number") {
+            let mn = (props.min ?? -Infinity);
+            let mx = (props.max ?? +Infinity);
+            return !isNaN(v as number) && (mn <= v && v <= mx);
         }
         return true;
     }
 
-    const filterTypes = (s: Selectable[]) => {
-        return config.types.reduce((cur, Type) => [...cur, ...s.filter(s => s instanceof Type)], []) as T;
-    }
-
     const parseFinalVal = (v: P) => {
-        if (typeof v === "number") {
-            let mn = (min ?? -Infinity);
-            let mx = (max ?? +Infinity);
-            return Clamp(v, mn, mx) as P;
+        if (props.inputType === "number") {
+            let mn = (props.min ?? -Infinity);
+            let mx = (props.max ?? +Infinity);
+            return Clamp(v as number, mn, mx) as P;
         }
         return v;
+    }
+
+    const filterTypes = (s: Selectable[]) => {
+        return config.types.reduce((cur, Type) => [...cur, ...s.filter(s => s instanceof Type)], []) as T;
     }
 
     const getDependencies = (state: State, selections: SelectionsWrapper) => {
@@ -176,20 +202,229 @@ export const CreateModule = (<T extends any[], P extends ModuleTypes>({inputType
             setState({...state, focused: false});
         }
 
+        if (props.inputType === "select") {
+            return (
+                <select value={focused ? textVal : (same ? val as (string | number) : "")}
+                        onChange={(ev) => onChange(ev.target.value)}
+                        onFocus={() => setState({...state, focused: true, textVal: val.toString()})}
+                        onBlur={() => onSubmit()}>
+                    {props.options.map((o, i) =>
+                        <option key={`selection-popup-select-option-${o}-${i}`}
+                                value={o as (string | number)}>{o}</option>
+                    )}
+                </select>
+            )
+        }
+
         return (
-            <input type={(inputType === "float" || inputType === "int" ? "number" : inputType)}
-                   value={focused ? textVal : (same ? val : "")}
+            <input type={props.inputType}
+                   value={focused ? textVal : (same ? val as (string | number) : "")}
                    placeholder={same ? "" : "-"}
-                   step={step}
-                   min={min}
-                   max={max}
+                   step={"step" in props ? props.step : ""}
+                   min ={"min"  in props ? props.min  : ""}
+                   max ={"max"  in props ? props.max  : ""}
                    onChange={(ev) => onChange(ev.target.value)}
                    onFocus={() => setState({...state, focused: true, textVal: val.toString()})}
                    onBlur={() => onSubmit()}
-                   onKeyPress={({target, key}) => (inputType !== "color" &&
+                   onKeyPress={({target, key}) => (props.inputType !== "color" &&
                                                    key === "Enter" &&
                                                    (target as HTMLInputElement).blur())}
-                   alt={alt} />
+                   alt={props.alt} />
         )
     }
 });
+
+
+
+
+type ButtonModuleProps = UseModuleProps & {
+    text: string;
+    alt: string;
+    getDependencies: (s: Selectable) => string;
+    isActive: (selections: Selectable[]) => boolean;
+    onClick: (selections: Selectable[]) => Action | void;
+}
+export const ButtonPopupModule = ({selections, text, alt, getDependencies, isActive, onClick, addAction, render}: ButtonModuleProps) => {
+    const [state, setState] = useState({active: false});
+
+    const dependencyStr = selections.get().reduce((c, s) => c + s.constructor.name + getDependencies(s), "");
+
+    useLayoutEffect(() => {
+        // This means Selections changed, so we must check if
+        //  we should should show this module or not
+        if (selections.amount() === 0) {
+            setState({active: false});
+            return;
+        }
+
+        setState({ active: isActive(selections.get()) });
+    }, [selections, isActive, dependencyStr]);
+
+    const click = () => {
+        const a = onClick(selections.get());
+        if (a)
+            addAction(a);
+        render();
+    }
+
+    if (!state.active)
+        return null;
+
+    return (
+        <button title={alt}
+                onClick={() => click()}>{text}</button>
+    )
+}
+
+
+
+
+type PopupModuleProps = {
+    label: string;
+    modules: ReturnType<typeof CreateModule>[];
+}
+export const PopupModule = (({label, modules}: PopupModuleProps) => {
+    return function PopupModuleFunc (props: UseModuleProps) {
+        const ms = modules.map(m => m(props));
+        if (ms.every(m => m === null))
+            return null;
+        return <div key={`selection-popup-${label}-module`}>
+            {label}
+            <label unselectable="on">
+                {ms.map((m, i) => cloneElement(m, {key: `selection-popup-${label}-module-${i}`}))}
+            </label>
+        </div>;
+    }
+});
+
+
+
+
+
+// const Config: ModuleConfig<[Label], boolean> = {
+//     types: [Label],
+//     valType: "boolean",
+//     getProps: (o) => o.getTextColor(),
+//     getAction: (s, newCol) => new GroupAction(s.map(o => new LabelTextColorChangeAction(o, newCol)))
+// }
+
+// export const BusButtonModule = PopupModule({
+//     label: "",
+//     modules: [CreateModule({
+//         inputType: "button",
+//         text: "Bus",
+//         config: Config,
+//         alt: "Create a bus between selected ports"
+//     })]
+// });
+
+// type BaseProps<T extends any[]> = {
+//     allowedTypes: (Function & {prototype: T[number]})[];
+// }
+// type StatefulBaseProps<T extends any[], P extends (string | number)> = BaseProps<T> & {
+//     getProps: (o: T[number]) => P;
+//     getAction: (s: (T[number])[], newVal: P) => Action;
+// }
+// type InputBaseProps<T extends any[], P extends (string | number)> = StatefulBaseProps<T, P> & {
+//     alt: string;
+// }
+
+
+// // type ButtonProps<T extends any[]> = BaseProps<T> & {
+// //     inputType: "button";
+// //     text: string;
+// //     alt: string;
+// //     onClick: () => void;
+// // }
+
+// type NumberProps<T extends any[]> = InputBaseProps<T, number> & {
+//     inputType: "number";
+//     valType: "int" | "float";
+//     step?: number;
+//     min?: number;
+//     max?: number;
+// }
+
+// type ColorProps<T extends any[]> = InputBaseProps<T, string> & {
+//     inputType: "color";
+//     valType: "string";
+// }
+
+// type TextProps<T extends any[]> = InputBaseProps<T, string> & {
+//     inputType: "text";
+//     valType: "string";
+// }
+
+// type SelectProps<T extends any[]> = StatefulBaseProps<T, string | number> & {
+//     inputType: "select";
+//     options: (string | number)[];
+// }
+
+
+
+
+// type Props<T extends any[]> =
+//     NumberProps<T> | ColorProps<T> | TextProps<T> | SelectProps<T>;
+//     // (P extends number ? NumberProps<T> : ButtonProps<T>);
+
+
+// function Test<T extends any[]>(props: Props<T>) {
+//     if (props.inputType === "number") {
+//         const {} = props;
+//     } else {
+
+//     }
+// }
+
+
+
+// Test<[Label]>({
+//     allowedTypes: [Label],
+//     inputType: "select",
+//     options: [7, 9, 14],
+//     getProps: (o) => o.getAngle(),
+//     getAction: (s, newAngle) => new GroupAction()
+// });
+
+
+// Test<[Label]>({
+//     allowedTypes: [Label],
+//     inputType: "color",
+//     valType: "string",
+//     alt: "Color",
+//     getProps: (o) => o.getTextColor(),
+//     getAction: (s, newVal) => new GroupAction()
+// });
+
+
+// Test<[Clock, Label]>({
+//     allowedTypes: [Clock, Label],
+//     inputType: "text",
+//     valType: "string",
+//     alt: "String",
+//     getProps: (o) => o.getName(),
+//     getAction: (s, newVal) => new GroupAction()
+// });
+
+
+// Test<[Clock]>({
+//     allowedTypes: [Clock],
+//     inputType: "number",
+//     valType: "int",
+//     step: 100,
+//     min: 200,
+//     max: 10000,
+//     alt: "Number",
+//     getProps: (o) => o.getFrequency(),
+//     getAction: (s, newFreq) => new GroupAction(s.map(o => new ClockFrequencyChangeAction(s, newFreq)))
+// });
+
+
+
+// Test<[Label]>({
+//     allowedTypes: [Label],
+//     inputType: "button",
+//     text: "Bus",
+//     alt: "Create a bus between selected ports",
+//     onClick: () => {}
+// })

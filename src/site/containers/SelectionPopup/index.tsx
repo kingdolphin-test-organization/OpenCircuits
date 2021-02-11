@@ -1,4 +1,6 @@
-import {useLayoutEffect, useRef, useState} from "react";
+import {useLayoutEffect, useState} from "react";
+
+import {HEADER_HEIGHT} from "site/utils/Constants";
 
 import {V} from "Vector";
 import {Camera} from "math/Camera";
@@ -8,10 +10,10 @@ import {SelectionsWrapper} from "core/utils/SelectionsWrapper";
 
 import {Action} from "core/actions/Action";
 
+import {TitleModule} from "./modules/TitleModule";
 import {UseModuleProps} from "./modules/Module";
 
 import "./index.scss";
-import {TitleModule} from "./modules/TitleModule";
 
 
 type Props = {
@@ -25,7 +27,6 @@ type Props = {
     };
 }
 export function SelectionPopup({modules, camera, selections, addAction, render, eventHandler}: Props) {
-    const ref = useRef<HTMLDivElement>();
     const [state, setState] = useState({
         visible: false,
         pos: V()
@@ -33,36 +34,33 @@ export function SelectionPopup({modules, camera, selections, addAction, render, 
 
     useLayoutEffect(() => {
         eventHandler.addListener((ev, change) => {
-            const getPos = () => {
-                const midpoint = selections.midpoint(true);
-                return camera.getScreenPos(midpoint).sub(V(0, /*ref.current.clientHeight/2 ?????? */));
-            }
+            const getPos = () => camera.getScreenPos(selections.midpoint(true));
 
             // Don't show popup if dragging
             if (ev.type === "mousedrag" && change) {
                 setState({
-                    pos: V(),
+                    pos: getPos(),
                     visible: false
                 });
-            } else if (change) {
+            } else if (ev.type === "mouseup" || change) {
                 setState({
                     pos: getPos(),
                     visible: (selections.amount() > 0)
                 });
             }
         });
+
+        return () => {console.log("I SHOULD NOT BE HERE")}
     }, [eventHandler, camera, selections]);
 
     return (
         <div className="selection-popup"
-             ref={ref}
              style={{
                 left: `${state.pos.x}px`,
-                top:  `${state.pos.y}px`,
+                top:  `${state.pos.y + HEADER_HEIGHT}px`,
                 visibility: (state.visible ? "visible": "hidden")
              }}
              tabIndex={-1}>
-            {/* <input type="text" placeholder="Name" alt="Name of object(s)" /> */}
             <TitleModule selections={selections} addAction={addAction} render={render} />
             <hr />
             {modules.map(m => m({

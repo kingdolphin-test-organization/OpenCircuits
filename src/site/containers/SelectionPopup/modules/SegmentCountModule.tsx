@@ -1,34 +1,21 @@
 import {GroupAction} from "core/actions/GroupAction";
-import {ClockFrequencyChangeAction} from "digital/actions/ClockFrequencyChangeAction";
-import {Clock} from "digital/models/ioobjects";
-import {CreateModule, ModuleConfig, UseModuleProps} from "./Module";
+import {InputPortChangeAction} from "digital/actions/ports/InputPortChangeAction";
+import {SegmentDisplay} from "digital/models/ioobjects";
+import {CreateModule, ModuleConfig, PopupModule} from "./Module";
 
 
-const Config: ModuleConfig<[Clock], number> = {
-    types: [Clock],
-    getProps: (o) => o.getFrequency(),
-    getAction: (s, newFreq) => new GroupAction(s.map(o => new ClockFrequencyChangeAction(o, newFreq)))
+const Config: ModuleConfig<[SegmentDisplay], number> = {
+    types: [SegmentDisplay],
+    valType: "int",
+    getProps: (o) => o.getSegmentCount(),
+    getAction: (s, newCount) => new GroupAction(s.map(o => new InputPortChangeAction(o, o.getInputPortCount().getValue(), newCount)))
 }
 
-const Module = CreateModule({
-    inputType: "int",
-    config: Config,
-    step: 100,
-    min: 200,
-    max: 10000,
-    alt: "Clock delay in milliseconds"
+export const SegmentCountModule = PopupModule({
+    label: "Segment Count",
+    modules: [CreateModule({
+        inputType: "select",
+        config: Config,
+        options: [7, 9, 14, 16],
+    })]
 });
-
-export const SegmentCountModule = (props: UseModuleProps) => {
-    const m = Module(props);
-    if (m === null)
-        return null;
-    return (
-        <div key="selection-popup-segment-count-module">
-            Segment Count
-            <label unselectable="on">
-                {m}
-            </label>
-        </div>
-    );
-}

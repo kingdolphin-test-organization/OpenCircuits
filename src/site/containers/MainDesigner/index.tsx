@@ -1,6 +1,8 @@
 import {Create} from "serialeazy";
 import {useEffect, useLayoutEffect, useRef} from "react";
 
+import {HEADER_HEIGHT} from "site/utils/Constants";
+
 import {V} from "Vector";
 import {Camera} from "math/Camera";
 
@@ -8,6 +10,7 @@ import {SelectionsWrapper}  from "core/utils/SelectionsWrapper";
 import {RenderQueue}        from "core/utils/RenderQueue";
 import {Input}              from "core/utils/Input";
 import {CircuitInfo}        from "core/utils/CircuitInfo";
+import {Event}              from "core/utils/Events";
 
 import {HistoryManager} from "core/actions/HistoryManager";
 import {PlaceAction}    from "core/actions/addition/PlaceAction";
@@ -30,16 +33,20 @@ import {WireRenderer}           from "digital/rendering/ioobjects/WireRenderer";
 import {ComponentRenderer}      from "digital/rendering/ioobjects/ComponentRenderer";
 import {ToolRenderer} from "digital/rendering/ToolRenderer";
 
+import {SelectionPopup}       from "site/containers/SelectionPopup";
+import {PositionModule}       from "site/containers/SelectionPopup/modules/PositionModule";
+import {InputCountModule}     from "site/containers/SelectionPopup/modules/InputCountModule";
+import {ColorModule}          from "site/containers/SelectionPopup/modules/ColorModule";
+import {ClockFrequencyModule} from "site/containers/SelectionPopup/modules/ClockFrequencyModule";
+import {OutputCountModule}    from "site/containers/SelectionPopup/modules/OutputCountModule";
+import {SegmentCountModule}   from "site/containers/SelectionPopup/modules/SegmentCountModule";
+import {TextColorModule}      from "site/containers/SelectionPopup/modules/TextColorModule";
+import {BusButtonModule}      from "site/containers/SelectionPopup/modules/BusButtonModule";
+import {ViewICButtonModule}   from "site/containers/SelectionPopup/modules/ViewICButtonModule";
+
 import {useWindowSize} from "site/utils/hooks/useWindowSize";
 
 import "./index.scss";
-import {SelectionPopup} from "../SelectionPopup";
-import {Event} from "core/utils/Events";
-import {PositionModule} from "../SelectionPopup/modules/PositionModule";
-import {InputCountModule} from "../SelectionPopup/modules/InputCountModule";
-import {ColorModule} from "../SelectionPopup/modules/ColorModule";
-import {ClockFrequencyModule} from "../SelectionPopup/modules/ClockFrequencyModule";
-import {OutputCountModule} from "../SelectionPopup/modules/OutputCountModule";
 
 
 export const MainDesigner = (() => {
@@ -111,8 +118,6 @@ export const MainDesigner = (() => {
             useLayoutEffect(() => {
                 camera.resize(w, h); // Update camera size when w/h changes
                 renderQueue.render(); // Re-render
-
-                console.log("resized");
             }, [w, h]);
 
 
@@ -131,38 +136,29 @@ export const MainDesigner = (() => {
                     eventHandler.listeners.forEach(l => l(event, change));
                 });
 
-                // selections.addChangeListener(() => {
-                //     // forceSelectionPopupUpdate();
-                // });
-
                 renderQueue.setRenderFunction(() => render(renderers));
                 renderQueue.render();
-
-                console.log("i have been called");
             }, []); // Pass empty array so that this only runs once on mount
-
-            console.log("main render");
 
             return (<>
                 <SelectionPopup camera={camera}
                                 modules={[PositionModule, InputCountModule,
-                                          OutputCountModule,
-                                          ColorModule, ClockFrequencyModule]}
+                                          OutputCountModule, SegmentCountModule,
+                                          ClockFrequencyModule,
+                                          ColorModule, TextColorModule,
+                                          BusButtonModule, ViewICButtonModule]}
                                 selections={selections}
                                 addAction={(a) => {
                                     history.add(a);
+                                    eventHandler.listeners.forEach(l => l({type:"unknown"}, true));
                                 }}
                                 render={() => renderQueue.render()}
                                 eventHandler={eventHandler} />
-                    {/* <PositionModule selections={selections} addAction={(a) => {
-                                    history.add(a);
-                                    renderQueue.render();
-                                }} /> */}
 
 
                 <canvas
                     width={w}
-                    height={h-65}
+                    height={h-HEADER_HEIGHT}
                     ref={canvas}
                     onDragOver={(ev) => {
                         ev.preventDefault();

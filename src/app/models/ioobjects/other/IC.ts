@@ -43,7 +43,6 @@ export class IC extends DigitalComponent {
     private redirectOutputs(): void {
         // Redirect activate function for output objects
         const outputs = this.collection.getOutputs();
-        // console.log(this.collection);
         for (let i = 0; i < this.numOutputs(); i++) {
             const port = this.getOutputPort(i);
             const output = outputs[i];

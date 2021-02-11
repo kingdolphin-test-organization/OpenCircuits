@@ -5,7 +5,7 @@ import {InputPort} from "digital/models/ports/InputPort";
 import {OutputPort} from "digital/models/ports/OutputPort";
 
 export function CreateBusAction(outputPorts: OutputPort[], inputPorts: InputPort[]): GroupAction {
-    if (inputPorts.length != outputPorts.length)
+    if (inputPorts.length !== outputPorts.length)
         throw new Error("Expected equal size input and output ports to bus!");
 
     const action = new GroupAction();
@@ -39,7 +39,7 @@ export function CreateBusAction(outputPorts: OutputPort[], inputPorts: InputPort
         });
 
         // Create action
-        action.add(new ConnectionAction(designer, max.out, max. in));
+        action.add(new ConnectionAction(designer, max.out, max.in));
         // wire.setAsStraight(true); @TODO
 
         // Remove ports from array

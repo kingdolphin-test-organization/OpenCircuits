@@ -11,7 +11,7 @@ import {InputPortChangeAction} from "digital/actions/ports/InputPortChangeAction
 import {MuxPortChangeAction} from "digital/actions/ports/MuxPortChangeAction";
 import {CoderPortChangeAction} from "digital/actions/ports/CoderPortChangeAction";
 
-import {CreateModule, ModuleConfig, UseModuleProps} from "./Module";
+import {CreateModule, ModuleConfig, PopupModule} from "./Module";
 
 
 const Config: ModuleConfig<[ANDGate, NANDGate, ORGate,
@@ -20,6 +20,7 @@ const Config: ModuleConfig<[ANDGate, NANDGate, ORGate,
     types: [ANDGate, NANDGate, ORGate,
             NORGate, XORGate, XNORGate,
             Mux, Decoder],
+    valType: "int",
     getProps: (o) => (o instanceof Mux ? o.getSelectPortCount() : o.getInputPortCount()).getValue(),
     getAction: (s, newCount) => (
         new GroupAction(
@@ -35,25 +36,12 @@ const Config: ModuleConfig<[ANDGate, NANDGate, ORGate,
     )
 }
 
-const Module = CreateModule({
-    inputType: "int",
-    config: Config,
-    step: 1,
-    min: 2,
-    max: 8,
-    alt: "Number of inputs object(s) have"
+export const InputCountModule = PopupModule({
+    label: "Input Count",
+    modules: [CreateModule({
+        inputType: "number",
+        config: Config,
+        step: 1, min: 2, max: 8,
+        alt: "Number of inputs object(s) have"
+    })]
 });
-
-export const InputCountModule = (props: UseModuleProps) => {
-    const m = Module(props);
-    if (m === null)
-        return null;
-    return (
-        <div key="selection-popup-input-count-module">
-            Input Count
-            <label unselectable="on">
-                {m}
-            </label>
-        </div>
-    );
-}

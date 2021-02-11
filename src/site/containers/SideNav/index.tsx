@@ -26,8 +26,6 @@ type DispatchProps = {
 
 type Props = StateProps & DispatchProps & OwnProps;
 function _SideNav({ isOpen, userCircuits, exampleCircuits, toggle }: Props) {
-
-    console.log("re-renderer");
     return (
     <>
         <Overlay isOpen={isOpen} close={toggle} />
