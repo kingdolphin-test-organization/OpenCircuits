@@ -12,6 +12,7 @@ import {DigitalComponent} from "digital/models/DigitalComponent";
 
 import {ICData} from "./ICData";
 
+
 @serializable("IC", {
     customPostDeserialization: (obj: IC) => {
         obj.redirectOutputs();
@@ -25,14 +26,11 @@ export class IC extends DigitalComponent {
     private collection: DigitalObjectSet;
 
     public constructor(data?: ICData) {
-        // if no data was provided then provide blank arguments
-        if (!data) {
-            super(new ClampedValue(0), new ClampedValue(0), V());
+        // If data if undefined (because we're deserealizing it, then use 0)
+        super(new ClampedValue(data ? data.getInputCount()  : 0),
+              new ClampedValue(data ? data.getOutputCount() : 0), V(DEFAULT_SIZE));
+        if (!data)
             return;
-        }
-
-        super(new ClampedValue(data.getInputCount()),
-              new ClampedValue(data.getOutputCount()), V(DEFAULT_SIZE));
         this.data = data;
         this.collection = this.data.copy(); // Copy internals
 

@@ -1,6 +1,5 @@
 import {AllActions} from "../actions";
 
-import {TOGGLE_SIDENAV_ID} from "./actionTypes";
 import {UserInfoState} from "./state";
 
 
@@ -12,10 +11,6 @@ const initialState = {
 
 export function userInfoReducer(state = initialState, action: AllActions): UserInfoState {
     switch (action.type) {
-        case TOGGLE_SIDENAV_ID:
-            return {
-                ...state
-            };
         default:
             return state;
     }

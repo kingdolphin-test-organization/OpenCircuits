@@ -14,6 +14,7 @@ import {TitleModule} from "./modules/TitleModule";
 import {UseModuleProps} from "./modules/Module";
 
 import "./index.scss";
+import {CreateICButtonModule} from "./modules/CreateICButtonModule";
 
 
 type Props = {
@@ -63,11 +64,12 @@ export function SelectionPopup({modules, camera, selections, addAction, render, 
              tabIndex={-1}>
             <TitleModule selections={selections} addAction={addAction} render={render} />
             <hr />
-            {modules.map(m => m({
+            {modules.map((m,i) => m({
                 selections,
                 addAction,
-                render
-            }))}
+                render,
+                key: `selection-popup-module-${i}`
+            } as any))}
         </div>
-    )
+    );
 }

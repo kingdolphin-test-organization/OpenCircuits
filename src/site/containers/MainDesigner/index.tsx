@@ -13,6 +13,8 @@ import {CircuitInfo}        from "core/utils/CircuitInfo";
 import {Event}              from "core/utils/Events";
 
 import {HistoryManager} from "core/actions/HistoryManager";
+import {GroupAction} from "core/actions/GroupAction";
+import {CreateDeselectAllAction, SelectAction} from "core/actions/selection/SelectAction";
 import {PlaceAction}    from "core/actions/addition/PlaceAction";
 
 import {ToolManager}        from "core/tools/ToolManager";
@@ -28,11 +30,15 @@ import {Renderer}           from "core/rendering/Renderer";
 import {CreateRenderers}    from "core/rendering/CreateRenderers";
 import {Grid}               from "core/rendering/Grid";
 
+import {CreateICDataAction} from "digital/actions/CreateICDataAction";
+
+import {IC} from "digital/models/ioobjects";
 import {DigitalCircuitDesigner, DigitalComponent} from "digital/models";
 import {WireRenderer}           from "digital/rendering/ioobjects/WireRenderer";
 import {ComponentRenderer}      from "digital/rendering/ioobjects/ComponentRenderer";
 import {ToolRenderer} from "digital/rendering/ToolRenderer";
 
+import {ICDesigner} from "site/containers/ICDesigner";
 import {SelectionPopup}       from "site/containers/SelectionPopup";
 import {PositionModule}       from "site/containers/SelectionPopup/modules/PositionModule";
 import {InputCountModule}     from "site/containers/SelectionPopup/modules/InputCountModule";
@@ -43,12 +49,25 @@ import {SegmentCountModule}   from "site/containers/SelectionPopup/modules/Segme
 import {TextColorModule}      from "site/containers/SelectionPopup/modules/TextColorModule";
 import {BusButtonModule}      from "site/containers/SelectionPopup/modules/BusButtonModule";
 import {ViewICButtonModule}   from "site/containers/SelectionPopup/modules/ViewICButtonModule";
+import {CreateICButtonModule} from "site/containers/SelectionPopup/modules/CreateICButtonModule";
 
 import {useWindowSize} from "site/utils/hooks/useWindowSize";
 
 import "./index.scss";
+import {connect} from "react-redux";
+import {AppState} from "site/state";
+import {AddICData, RemoveICData} from "site/state/ItemNav/actions";
+import {ICViewer} from "../ICViewer";
 
 
+type OwnProps = {}
+type StateProps = {}
+type DispatchProps = {
+    addICData: typeof AddICData;
+    removeICData: typeof RemoveICData;
+}
+
+type Props = StateProps & DispatchProps & OwnProps;
 export const MainDesigner = (() => {
     const camera = new Camera();
     const renderQueue = new RenderQueue();
@@ -107,8 +126,11 @@ export const MainDesigner = (() => {
     }
 
 
-    return (
-        () => {
+    return connect<StateProps, DispatchProps, OwnProps, AppState>(
+        undefined,
+        { addICData: AddICData, removeICData: RemoveICData }
+    )(
+        ({addICData, removeICData}: Props) => {
             const {w, h} = useWindowSize();
             const canvas = useRef<HTMLCanvasElement>();
 
@@ -130,9 +152,8 @@ export const MainDesigner = (() => {
                 circuitInfo.input = input;
 
                 input.addListener((event) => {
-                    let change = toolManager.onEvent(event, circuitInfo);
-                    if (change)
-                        renderQueue.render();
+                    const change = toolManager.onEvent(event, circuitInfo);
+                    if (change) renderQueue.render();
                     eventHandler.listeners.forEach(l => l(event, change));
                 });
 
@@ -146,7 +167,8 @@ export const MainDesigner = (() => {
                                           OutputCountModule, SegmentCountModule,
                                           ClockFrequencyModule,
                                           ColorModule, TextColorModule,
-                                          BusButtonModule, ViewICButtonModule]}
+                                          BusButtonModule, CreateICButtonModule,
+                                          ViewICButtonModule]}
                                 selections={selections}
                                 addAction={(a) => {
                                     history.add(a);
@@ -156,26 +178,70 @@ export const MainDesigner = (() => {
                                 eventHandler={eventHandler} />
 
 
-                <canvas
-                    width={w}
-                    height={h-HEADER_HEIGHT}
-                    ref={canvas}
-                    onDragOver={(ev) => {
-                        ev.preventDefault();
-                    }}
-                    onDrop={(ev) => {
-                        const uuid = ev.dataTransfer.getData("custom/component");
-                        if (!uuid)
-                            return;
-                        const rect = canvas.current.getBoundingClientRect();
-                        const pos = V(ev.pageX, ev.clientY-rect.top);
-                        const component = Create<DigitalComponent>(uuid);
-                        component.setPos(camera.getWorldPos(pos));
-                        history.add(new PlaceAction(designer, component).execute());
-                        renderQueue.render();
-                    }} />
+                <ICDesigner onActivate={() => {
+                                // Stop events on MainDesigner while ICDesigner is open
+                                circuitInfo.input.block();
+                            }}
+                            onClose={(data) => {
+                                if (data) {
+                                    // Create IC on center of screen
+                                    const ic = new IC(data);
+                                    ic.setPos(camera.getPos());
+
+                                    let index = -1;
+
+                                    const icDataAction = {
+                                        execute: () => {
+                                            designer.addICData(data);
+                                            if (index === -1)
+                                                index = designer.getICData().indexOf(data);
+                                            addICData({ name: ic.getName(), index });
+                                            return icDataAction;
+                                        },
+                                        undo: () => {
+                                            designer.removeICData(data);
+                                            removeICData(index);
+                                            return icDataAction;
+                                        }
+                                    };
+
+                                    // Deselect other things, create IC and select it
+                                    const action = new GroupAction([
+                                        CreateDeselectAllAction(selections),
+                                        icDataAction,
+                                        new PlaceAction(designer, ic),
+                                        new SelectAction(selections, ic)
+                                    ]);
+                                    history.add(action.execute());
+                                    renderQueue.render();
+                                }
+                                circuitInfo.input.unblock();
+                            }} />
+
+                <ICViewer onActivate={() => circuitInfo.input.block()}
+                          onClose   ={() => circuitInfo.input.unblock()} />
+
+
+                <canvas className="main__canvas"
+                        width={w}
+                        height={h-HEADER_HEIGHT}
+                        ref={canvas}
+                        onDragOver={(ev) => {
+                                ev.preventDefault();
+                        }}
+                        onDrop={(ev) => {
+                                const uuid = ev.dataTransfer.getData("custom/component");
+                            if (!uuid)
+                                return;
+                            const rect = canvas.current.getBoundingClientRect();
+                            const pos = V(ev.pageX, ev.clientY-rect.top);
+                            const component = Create<DigitalComponent>(uuid);
+                            component.setPos(camera.getWorldPos(pos));
+                            history.add(new PlaceAction(designer, component).execute());
+                            renderQueue.render();
+                        }} />
             </>);
         }
-    )
+    );
 })();
 

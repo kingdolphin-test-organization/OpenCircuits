@@ -3,6 +3,8 @@ import {CircuitInfoState} from "./CircuitInfo/state";
 import {HeaderState} from "./Header/state";
 import {SideNavState} from "./SideNav/state";
 import {ItemNavState} from "./ItemNav/state";
+import {ICDesignerState} from "./ICDesigner/state";
+import {ICViewerState} from "./ICViewer/state";
 
 
 export type AppState = {
@@ -11,4 +13,6 @@ export type AppState = {
     header: HeaderState;
     sideNav: SideNavState;
     itemNav: ItemNavState;
+    icDesigner: ICDesignerState;
+    icViewer: ICViewerState;
 }

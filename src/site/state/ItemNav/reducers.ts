@@ -1,12 +1,14 @@
 import {AllActions} from "../actions";
 
 import {TOGGLE_CIRCUIT_LOCKED_ID} from "../CircuitInfo/actionTypes";
-import {TOGGLE_ITEMNAV_ID} from "./actionTypes";
+import {ADD_IC_DATA_ID, REMOVE_IC_DATA_ID, TOGGLE_ITEMNAV_ID} from "./actionTypes";
 import {ItemNavState} from "./state";
 
 const initialState = {
     isEnabled: true,
-    isOpen: false
+    isOpen: false,
+
+    ics: []
 } as ItemNavState;
 
 export function itemNavReducer(state = initialState, action: AllActions): ItemNavState {
@@ -22,6 +24,17 @@ export function itemNavReducer(state = initialState, action: AllActions): ItemNa
                 ...state,
                 // Close ItemNav when lock circuit
                 isOpen: false
+            }
+        case ADD_IC_DATA_ID:
+            return {
+                ...state,
+                ics: [...state.ics, action.data]
+            }
+        case REMOVE_IC_DATA_ID:
+            const i = state.ics.findIndex(d => d.index === action.id);
+            return {
+                ...state,
+                ics: [...state.ics.slice(0, i), ...state.ics.slice(i+1)]
             }
         default:
             return state;

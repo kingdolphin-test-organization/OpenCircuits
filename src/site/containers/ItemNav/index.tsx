@@ -1,9 +1,9 @@
-import React, {Dispatch} from "react";
+import React from "react";
 import {connect} from "react-redux";
 
 import {AppState} from "site/state";
-import {AllActions} from "site/state/actions";
 import {ToggleItemNav} from "site/state/ItemNav/actions";
+import {ICItemNavData} from "site/state/ItemNav/state";
 
 import "./index.scss";
 
@@ -29,13 +29,14 @@ type StateProps = {
     isOpen: boolean;
     isEnabled: boolean;
     isLocked: boolean;
+    ics: ICItemNavData[];
 }
 type DispatchProps = {
     toggle: () => void;
 }
 
 type Props = StateProps & DispatchProps & OwnProps;
-function _ItemNav({ isOpen, isEnabled, isLocked, config, toggle }: Props) {
+function _ItemNav({ isOpen, isEnabled, isLocked, ics, config, toggle }: Props) {
     return (
     <>
         { // Hide tab if the circuit is locked
@@ -61,6 +62,18 @@ function _ItemNav({ isOpen, isEnabled, isLocked, config, toggle }: Props) {
                     )}
                 </React.Fragment>
             )}
+            {ics.length > 0 ? <h4>ICs</h4> : null}
+            {ics.map(ic =>
+                <button key={`itemnav-section-ics-item-${ic.index}`}
+                        onDragStart={(ev) => {
+                            ev.dataTransfer.setData("custom/component", `ic/${ic.index}`);
+                            ev.dataTransfer.dropEffect = "copy";
+                        }}>
+                    <img src={"/img/itemnav/other/multiplexer.svg"} alt={ic.name} />
+                    <br />
+                    {ic.name}
+                </button>
+            )}
         </nav>
     </>
     );
@@ -70,11 +83,11 @@ function _ItemNav({ isOpen, isEnabled, isLocked, config, toggle }: Props) {
 const MapState = (state: AppState) => ({
     isLocked: state.circuit.isLocked,
     isEnabled: state.itemNav.isEnabled,
-    isOpen: state.itemNav.isOpen
+    isOpen: state.itemNav.isOpen,
+    ics: state.itemNav.ics
 });
-
-const MapDispatch = (dispatch: Dispatch<AllActions>) => ({
-    toggle: () => dispatch(ToggleItemNav())
-});
+const MapDispatch = {
+    toggle: ToggleItemNav
+};
 
 export const ItemNav = connect<StateProps, DispatchProps, OwnProps, AppState>(MapState, MapDispatch)(_ItemNav);

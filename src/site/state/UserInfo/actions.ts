@@ -1,13 +1,3 @@
-import {TOGGLE_SIDENAV_ID} from "./actionTypes";
+import {LOGIN_ACTION_ID} from "./actionTypes";
 
-export type ToggleSideNavAction = {
-    type: typeof TOGGLE_SIDENAV_ID;
-}
-
-export function ToggleSideNav(): ToggleSideNavAction {
-    return {
-        type: TOGGLE_SIDENAV_ID
-    };
-}
-
-export type UserInfoActions = ToggleSideNavAction;
+export type UserInfoActions = {type: typeof LOGIN_ACTION_ID};

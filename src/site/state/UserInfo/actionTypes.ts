@@ -1,2 +1,2 @@
 
-export const TOGGLE_SIDENAV_ID = "TOGGLE_SIDENAV_ID";
+export const LOGIN_ACTION_ID = "LOGIN_ACTION_ID";

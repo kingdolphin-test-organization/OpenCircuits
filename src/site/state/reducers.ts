@@ -7,6 +7,8 @@ import {circuitInfoReducer} from "./CircuitInfo/reducers";
 import {headerReducer} from "./Header/reducers";
 import {sideNavReducer} from "./SideNav/reducers";
 import {itemNavReducer} from "./ItemNav/reducers";
+import {icDesignerReducer} from "./ICDesigner/reducers";
+import {icViewerReducer} from "./ICViewer/reducers";
 
 
 export const reducers = combineReducers<AppState>({
@@ -14,5 +16,7 @@ export const reducers = combineReducers<AppState>({
     circuit: circuitInfoReducer,
     header: headerReducer,
     sideNav: sideNavReducer,
-    itemNav: itemNavReducer
+    itemNav: itemNavReducer,
+    icDesigner: icDesignerReducer,
+    icViewer: icViewerReducer
 });

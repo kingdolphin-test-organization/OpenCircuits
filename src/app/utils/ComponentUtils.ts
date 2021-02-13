@@ -25,8 +25,6 @@ import {OutputPort} from "digital/models/ports/OutputPort";
  */
 @serializable("DigitalObjectSet")
 export class DigitalObjectSet extends IOObjectSet {
-    protected wires: Set<DigitalWire>;
-
     private inputs:  DigitalComponent[];
     private outputs: DigitalComponent[];
     private others:  DigitalComponent[];
@@ -63,7 +61,7 @@ export class DigitalObjectSet extends IOObjectSet {
     }
 
     public getWires(): DigitalWire[] {
-        return Array.from(this.wires);
+        return Array.from(this.wires) as DigitalWire[];
     }
 
     public getInputs(): DigitalComponent[] {
